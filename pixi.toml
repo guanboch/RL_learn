@@ -1,0 +1,10 @@
+[workspace]
+authors = ["guanboch <guanbo.usc@gmail.com>"]
+channels = ["conda-forge"]
+name = "learn_RL"
+platforms = ["osx-arm64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
