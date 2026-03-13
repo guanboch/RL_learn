@@ -1,8 +1,17 @@
 # %%
+import os
+import sys
 import gymnasium as gym
 import math
 import random
+
+os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
+
 import matplotlib
+
+if "ipykernel" not in sys.modules and os.environ.get("DISPLAY", "") == "":
+    matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
 from collections import namedtuple, deque
 from itertools import count
@@ -75,6 +84,15 @@ TAU = 0.005
 LR = 3e-4
 
 device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
+backend = matplotlib.get_backend().lower()
+is_inline_backend = "inline" in backend
+is_headless_backend = "agg" in backend
+ENABLE_PLOT = not is_headless_backend
+
+print(f"Python executable: {sys.executable}")
+print(f"Matplotlib backend: {matplotlib.get_backend()}")
+print(f"Torch device: {device}")
+print(f"Plotting enabled: {ENABLE_PLOT}")
 
 # Get number of actions from gym action space
 n_actions = env.action_space.n
@@ -111,12 +129,16 @@ def select_action(state):
 
 episode_durations = []
 
-is_ipython = 'inline' in matplotlib.get_backend()
-if is_ipython:
+if is_inline_backend:
     from IPython import display
 
-plt.ion()
+if ENABLE_PLOT and not is_inline_backend:
+    plt.ion()
+
 def plot_durations(show_result=False):
+    if not ENABLE_PLOT:
+        return
+
     plt.figure(1)
     durations_t = torch.tensor(episode_durations, dtype=torch.float)
     if show_result:
@@ -133,14 +155,14 @@ def plot_durations(show_result=False):
         means = torch.cat((torch.zeros(99), means))
         plt.plot(means.numpy())
 
-    plt.pause(0.001)  # pause a bit so that plots are updated
-
-    if is_ipython:
+    if is_inline_backend:
         if not show_result:
             display.display(plt.gcf())
             display.clear_output(wait=True)
         else:
             display.display(plt.gcf())
+    else:
+        plt.pause(0.001)  # pause a bit so that plots are updated
 #%%    
 def optimize_model():
     if len(memory) < BATCH_SIZE:
@@ -234,6 +256,7 @@ for i_episode in range(num_episodes):
 
 print('Complete')
 plot_durations(show_result=True)
-plt.ioff()
-plt.show()
+if ENABLE_PLOT and not is_inline_backend:
+    plt.ioff()
+    plt.show()
 # %%
